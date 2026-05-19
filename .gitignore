@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyTorch checkpoints — exclude all except the final committed artifact
+*.pt
+*.pth
+*.ckpt
+*.bin
+!artifacts/model.pt
+wandb/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Obsidian vault (local notes, not part of submission)
+.obsidian/
+_templates/
+00-Project/
+01-Dataset/
+02-Tokenizer/
+03-Model/
+04-Training/
+05-Evaluation/
+06-API/
+07-Docker/
+08-System-Design/
+09-Repository/
+
+# Assessment source document (not part of submission)
+*.docx

@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.venv
+.env
+.git
+.gitignore
+data/
+notebooks/
+*.log
+artifacts/training_logs.txt
