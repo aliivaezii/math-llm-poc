@@ -4,8 +4,8 @@
 
 A proof-of-concept pipeline for training and serving a small decoder-only
 Transformer that performs integer arithmetic from scratch. The system covers
-the full ML lifecycle — synthetic data generation, supervised fine-tuning,
-offline evaluation, and REST inference — using only PyTorch, FastAPI, and the
+the full ML lifecycle: synthetic data generation, supervised fine-tuning,
+offline evaluation, and REST inference. Built using only PyTorch, FastAPI, and the
 Python standard library. Every stage runs on CPU and is independently
 executable from a clean clone.
 
@@ -27,21 +27,27 @@ executable from a clean clone.
 ```
 math-llm-poc/
 ├── artifacts/
-│   ├── model.pt               # Trained model state_dict (saved by train.py)
-│   └── training_logs.txt      # Epoch-level loss and accuracy log
+│   ├── model.pt               # Trained model state_dict (4.1 MB, 1.07M params)
+│   └── training_logs.txt      # Epoch-level loss, accuracy, and LR log (60 epochs)
 ├── data/
 │   ├── train.csv              # ~40,000 training equations (stratified by answer length)
 │   ├── val.csv                # ~5,000 validation equations
 │   └── test.csv               # ~5,000 held-out test equations
 ├── docs/
-│   └── system_design.md       # Architecture, SFT/RL design, metrics, drift strategy
+│   ├── system_design.md       # Architecture, SFT/RL design, metrics, drift strategy
+│   ├── audit_report.md        # Full improvement history and compliance tables
+│   ├── accuracy_phases.png    # Bar chart: accuracy across training phases
+│   ├── accuracy_by_length.png # Bar chart: accuracy by answer digit length
+│   └── loss_curve.png         # Line chart: train/val loss over 60 epochs
 ├── src/
-│   ├── generate_dataset.py    # Synthetic dataset generator (50k samples, 80/10/10 split)
+│   ├── generate_dataset.py    # Synthetic dataset generator (stratified sampling)
 │   ├── tokenizer.py           # Character-level tokenizer (vocab size 16)
 │   ├── model.py               # TinyDecoderLM: decoder-only Transformer definition
 │   ├── train.py               # SFT training loop with AdamW and checkpoint saving
 │   ├── evaluate.py            # Greedy decoding, exact-match accuracy, hallucination report
 │   └── api.py                 # FastAPI server: /health and /predict endpoints
+├── tools/
+│   └── plot_metrics.py        # Generates the three charts under docs/
 ├── Dockerfile                 # Single-stage CPU-only inference image
 ├── requirements.txt           # Pinned dependencies (CPU torch wheel)
 ├── .dockerignore              # Excludes data/, logs, caches from image
@@ -51,7 +57,27 @@ math-llm-poc/
 
 ---
 
-## 3. Setup
+## 3. Quick Verification
+
+The trained checkpoint is committed. No retraining is required to verify the results.
+
+```bash
+# 1. Evaluate the committed model against the held-out test set (~30 seconds on CPU)
+python src/evaluate.py
+
+# 2. Start the REST API locally and query it
+uvicorn src.api:app --port 8000
+curl -s -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"equation": "951+11="}' | python -m json.tool
+
+# 3. Build and run the Docker image (requires Docker Desktop)
+docker build -t math-llm . && docker run --rm -p 8000:8000 math-llm
+```
+
+---
+
+## 4. Setup (Full Reproduction)
 
 ```bash
 python -m venv .venv
@@ -65,7 +91,7 @@ pip install -r requirements.txt
 
 ---
 
-## 4. Usage
+## 5. Usage
 
 Run all commands from the repository root.
 
@@ -166,7 +192,7 @@ The server loads `artifacts/model.pt` at startup. Visit
 
 ---
 
-## 5. Docker
+## 6. Docker
 
 ### Build
 
@@ -184,7 +210,7 @@ docker run --rm -p 8000:8000 math-llm
 
 ---
 
-## 6. API Reference
+## 7. API Reference
 
 ### `GET /health`
 
@@ -238,7 +264,7 @@ curl -X POST http://localhost:8000/predict \
 
 ---
 
-## 7. Engineering Assumptions
+## 8. Engineering Assumptions
 
 - **Operand range is fixed at [0, 999].** The model is not expected to
   generalise to larger numbers; out-of-range inputs are rejected at the API
@@ -266,7 +292,7 @@ curl -X POST http://localhost:8000/predict \
 
 ---
 
-## 8. Known Limitations
+## 9. Known Limitations
 
 - **No generalisation beyond training range.** Operands outside [0, 999] are
   rejected at the API level; operands inside the range but rare in training
@@ -287,7 +313,7 @@ curl -X POST http://localhost:8000/predict \
 
 ---
 
-## 9. Future Improvements
+## 10. Future Improvements
 
 - **Hard-case oversampling.** Explicitly oversample carry/borrow cascade
   patterns (e.g., `X9+1`, `X00-X99`) in the training dataset to close the

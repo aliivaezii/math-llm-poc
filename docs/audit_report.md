@@ -220,3 +220,33 @@ capacity to reliably eliminate.
 present, all 29/29 assessment requirements pass, and all hard constraints are
 satisfied. Exact-match accuracy stands at **98.44%** with 0.00% hallucination,
 infinite generation, and out-of-range rates across 5,006 test samples.
+
+---
+
+## Frozen Submission State
+
+**This repository is frozen.** No further changes are planned or expected.
+
+The committed state represents the final, complete submission as of **2026-05-19**.
+The iteration history documented in this report is closed:
+
+| Iteration | What changed | Outcome |
+|---|---|---|
+| Baseline | Initial implementation, 10 epochs, 137K params | 4.22% exact-match |
+| T1-A | Extended training to 30 epochs, early stopping | 74.82% → saved |
+| T1-B | CosineAnnealingLR from epoch 1 | **Reverted** — dropped to 36.90% |
+| T2-A | Larger model (1.07M params), re-ran 30 epochs | 86.00% → saved |
+| Phase 1 | Stratified dataset generation by answer digit length | Dataset rebuilt |
+| Phase 2 | Warmup + flat + cosine decay LR, 60 epochs | 98.44% → **final checkpoint** |
+
+The artifact `artifacts/model.pt` is the Phase 2 checkpoint (best val loss at epoch 55).
+Rerunning `python src/train.py` from scratch will reproduce a checkpoint of equal
+quality but will overwrite the committed one — the committed file is the submission artifact.
+
+Reviewers wishing to verify results without retraining can run:
+
+```bash
+python src/evaluate.py
+```
+
+Expected output: `exact_match_accuracy : 0.9844  (4928 / 5006)`.
